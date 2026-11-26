@@ -1,1 +1,18 @@
-
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-web-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app-web # Alvo do escalonamento horizontal automático
+  minReplicas: 2 # Limite mínimo de réplicas ativas
+  maxReplicas: 5 # Limite máximo de réplicas sob pico de carga
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50 # Escala para cima quando a média de CPU ultrapassa 50%
