@@ -1,1 +1,45 @@
-
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-web
+  labels:
+    app: app-web # Rótulo usado pelo Service, HPA e seletores do cluster
+spec:
+  replicas: 3 # Mantém múltiplas réplicas para alta disponibilidade
+  selector:
+    matchLabels:
+      app: app-web
+  template:
+    metadata:
+      labels:
+        app: app-web
+      annotations:
+        prometheus.io/scrape: "true" # Indica ao Prometheus que o pod pode ser alvo de coleta
+        prometheus.io/path: "/" # Caminho configurado para descoberta de endpoint
+        prometheus.io/port: "80" # Porta HTTP exposta pelo container Nginx
+    spec:
+      restartPolicy: Always # Garante reinício automático de containers encerrados
+      containers:
+        - name: nginx
+          image: nginx:alpine # Imagem leve e rápida para simulação HTTP
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m" # Base usada pelo HPA para calcular o % de utilização de CPU
+              memory: "64Mi"
+            limits:
+              cpu: "250m" # Teto de CPU por pod para evitar contenção excessiva no nó
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10 # Reinicia o container se a aplicação travar ou deixar de responder
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 5 # Remove o pod do balanceamento de tráfego enquanto não estiver pronto
